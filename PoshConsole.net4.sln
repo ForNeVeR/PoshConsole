@@ -1,12 +1,5 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Code Style Enforcer", "Code Style Enforcer", "{8E22457A-2B70-47B4-BC56-4AE2636124D1}"
-	ProjectSection(SolutionItems) = preProject
-		..\..\Program Files\DevTools\VS8 Plugins\Code Style Enforcer\CustomRules\ImplementationRules.xml = ..\..\Program Files\DevTools\VS8 Plugins\Code Style Enforcer\CustomRules\ImplementationRules.xml
-		..\..\Program Files\DevTools\VS8 Plugins\Code Style Enforcer\CustomRules\NameRules.xml = ..\..\Program Files\DevTools\VS8 Plugins\Code Style Enforcer\CustomRules\NameRules.xml
-		..\..\Program Files\DevTools\VS8 Plugins\Code Style Enforcer\CustomRules\VisibilityRules.xml = ..\..\Program Files\DevTools\VS8 Plugins\Code Style Enforcer\CustomRules\VisibilityRules.xml
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{3F848AAE-C60F-4FF8-9DE0-77E96E47765A}"
 	ProjectSection(SolutionItems) = preProject
 		PoshWpf\Install.ps1 = PoshWpf\Install.ps1
@@ -230,8 +223,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		CodeStyleEnforcer_RulesLocation = 0
 		CodeStyleEnforcer_Active = -1
+		CodeStyleEnforcer_RulesLocation = 0
 	EndGlobalSection
 	GlobalSection(NDepend) = preSolution
 		Project = ".\PoshConsole.Net4.ndproj"
