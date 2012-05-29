@@ -1,0 +1,9 @@
+glob:_ReSharper.*/*
+glob:*.suo
+glob:*.vs10x
+glob:*/bin/*
+glob:*/obj/*
+glob:*.user
+glob:PoshConsole/PoshWpf.dll
+glob:NDependOut/*
+glob:SyncToy*
