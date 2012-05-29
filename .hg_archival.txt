@@ -1,5 +1,0 @@
-repo: 5788a6260387ac0e0ff06785aa836fdb6dd94b3e
-node: f9bb2b127402be007696e54936450ffcbce76902
-branch: default
-latesttag: First Working Metro+Quake
-latesttagdistance: 15
