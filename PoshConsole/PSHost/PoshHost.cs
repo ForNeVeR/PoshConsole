@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
@@ -22,14 +20,13 @@ using Huddled.Wpf.Controls.Utility;
 
 namespace PoshConsole.Host
 {
-   /// <summary>
-   /// A sample implementation of the PSHost abstract class for console
-   /// applications. Not all members are implemented. Those that are 
-   /// not implemented throw a NotImplementedException exception.
-   /// </summary>
-   public partial class PoshHost : PSHost, IPSBackgroundHost
-   {
-
+	/// <summary>
+	/// A sample implementation of the PSHost abstract class for console
+	/// applications. Not all members are implemented. Those that are 
+	/// not implemented throw a NotImplementedException exception.
+	/// </summary>
+	public partial class PoshHost : PSHost, IPSBackgroundHost
+	{
       #region  Fields (16)
       /// <summary>
       /// A ConsoleRichTextBox for output
@@ -492,99 +489,89 @@ namespace PoshConsole.Host
 
       }
 
-      private List<string> BufferTabComplete(string cmdline)
-      {
-         var completions = new List<string>();
-         Collection<PSObject> set;
-         var lastWord = cmdline.GetLastWord();
-         ConsoleControl.TabExpansionTrace.TraceEvent(TraceEventType.Information, 1, "Line: '{0}'\nWord: '{1}'", cmdline, lastWord);
-         // Finally, call the TabExpansion string);
-         try
-         {
-            set = InvokePipeline("TabExpansion -Line '" + cmdline + "' -LastWord '" + lastWord + "'");
-            if (set != null)
-            {
-               completions.AddRange(set.Select(opt => opt.ToString()));
-            }
-         } // hide the error
-         catch (RuntimeException) { }
+		private List<string> BufferTabComplete(string commandLine)
+		{
+			var lastWord = commandLine.GetLastWord();
+			var generalCompletions = GetGeneralExpansions(commandLine, lastWord).ToList();
+			if (generalCompletions.Any())
+			{
+				return generalCompletions;
+			}
 
-         if(completions.Count > 0)
-         {
-            return completions;
-         }
+			if (String.IsNullOrEmpty(lastWord))
+			{
+				return GetCommandlets(String.Empty)
+					.Concat(GetVariables(String.Empty))
+					.Concat(GetFiles("."))
+					.ToList();
+			}
+			
+			if (lastWord.First() == '$')
+			{
+				return GetVariables(lastWord.Substring(1))
+					.ToList();
+			}
+			
+			return GetCommandlets(lastWord)
+				.Concat(GetFiles(lastWord))
+				.ToList();
+		}
 
-         // Still need to do more Tab Completion
-         // WishList: Make PowerTab only necessariy for true POWER users.
-         // Ideally, you should be able to choose which TabExpansions you want
-         // but get them all at _compiled_ speeds ... 
-         //   TabComplete Parameters
-         //   TabComplete Variables
-         //   TabComplete Aliases
-         //   TabComplete Executables in (current?) path
+		private IEnumerable<string> GetGeneralExpansions(string commandLine, string lastWord)
+		{
+			return InvokePipeline(
+				FormatPSCommand("TabExpansion",
+					Tuple.Create("CmdLine", commandLine),
+					Tuple.Create("LastWord", lastWord)))
+				.Select(pso => pso.ToString());
+		}
 
-         if (!string.IsNullOrEmpty(lastWord))
-         {
-            // TODO: find a way to access the ExecutionContext.SessionState to get the Commands list.
-            //// TabComplete Cmdlets inside the pipeline
-            //try
-            //{
-               
-            //   foreach (CmdletConfigurationEntry cmdlet in _runner.RunspaceConfiguration.Cmdlets)
-            //   {
-            //      if (cmdlet.Name.StartsWith(lastWord, true, null))
-            //      {
-            //         completions.Add(cmdlet.Name);
-            //      }
-            //   }
-            //}  // hide the error (no error unless RunspaceConfiguration is missing)
-            //catch (RuntimeException) { }
-            //catch (NullReferenceException) { }
+		private IEnumerable<string> GetCommandlets(string beginning)
+		{
+			if (_runner.RunspaceConfiguration == null)
+			{
+				return new string[0];
+			}
 
-            // TabComplete Paths
-            try
-            {
-               if (lastWord[0] == '$')
-               {
-                  set = InvokePipeline("get-variable " + lastWord.Substring(1) + "*");
-                  if (set != null)
-                  {
-                     completions.AddRange(set.Select(opt => opt.ImmediateBaseObject).OfType<PSVariable>().Select(var => "$" + var.Name));
-                  }
-               }
-            }// hide the error
-            catch (RuntimeException) { }
-            //finally
-            //{
-            //   set = null;
-            //}
+			return _runner.RunspaceConfiguration.Cmdlets
+				.Select(cce => cce.Name)
+				.Where(s => s.StartsWith(beginning, true, null));
+		}
 
+		private IEnumerable<string> GetVariables(string beginning)
+		{
+			return InvokePipeline(FormatPSCommand("Get-Variable", String.Format("{0}*", beginning)))
+				.Select(pso => pso.ImmediateBaseObject)
+				.OfType<PSVariable>()
+				.Select(psv => String.Format("${0}", psv.Name));
+		}
 
-            try
-            {
-               set = InvokePipeline("resolve-path \"" + lastWord + "*\"");
-               if (set != null)
-               {
-                  completions.AddRange(
-                     set.Select(opt => opt.ToString()).Select(
-                        completion => ((String) completion).Contains(" ") ? string.Format("\"{0}\"", completion) : completion
-                     )
-                  );
-               }
-            }// hide the error
-            catch (RuntimeException) { }
-            //finally
-            //{
-            //   set = null;
-            //}
+		private IEnumerable<string> GetFiles(string path)
+		{
+			return InvokePipeline(FormatPSCommand("Resolve-Path", path))
+				.Select(pso => pso.ToString());
+		}
 
+		private string FormatPSCommand(string command, params string[] args)
+		{
+			return String.Join(" ", new[] { command }
+				.Concat(args.Select(EscapeArgument)));
+		}
 
-            //finally {
-            //    set = null;
-            //}
-         }
-         return completions;
-      }
+		private string FormatPSCommand(string command, params Tuple<string, string>[] args)
+		{
+			return String.Join(" ", new[] {command}
+				.Concat(args.SelectMany(
+					pair => new[] {pair.Item1, EscapeArgument(pair.Item2)})));
+		}
+
+		private string EscapeArgument(string argument)
+		{
+			return argument.Any(c => Char.IsWhiteSpace(c) || c == '\'' || c == '"')
+				? String.Format("\"{0}\"", argument.Replace("'", "`'").Replace("\"", "`\""))
+				: argument;
+		}
+
       #endregion
       #region
       ///// <summary>
