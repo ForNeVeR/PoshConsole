@@ -505,13 +505,13 @@ namespace PoshConsole.Host
 					.Concat(GetFiles("."))
 					.ToList();
 			}
-			
+
 			if (lastWord.First() == '$')
 			{
 				return GetVariables(lastWord.Substring(1))
 					.ToList();
 			}
-			
+
 			return GetCommandlets(lastWord)
 				.Concat(GetFiles(lastWord))
 				.ToList();
@@ -554,7 +554,7 @@ namespace PoshConsole.Host
 
 		private string FormatPSCommand(string command, params string[] args)
 		{
-			return String.Join(" ", new[] { command }
+			return String.Join(" ", new[] {command}
 				.Concat(args.Select(EscapeArgument)));
 		}
 
