@@ -272,7 +272,6 @@
     </Compile>
     <Compile Include="Converters.cs" />
     <Compile Include="Interop\NativeMethods.cs" />
-    <Compile Include="PSHost\PoshHost.CommandBuffer.cs" />
     <Compile Include="PSHost\ScriptCommand.cs" />
     <Compile Include="PSHost\IPSUI.cs" />
     <Compile Include="PSHost\PoshHost.InvokeHelper.cs" />
@@ -342,6 +341,14 @@
     <ProjectReference Include="..\Microsoft.Windows.Shell\Microsoft.Windows.Shell.Net4.csproj">
       <Project>{55D5297C-F1DF-4B76-A3C1-D82CC294EEBB}</Project>
       <Name>Microsoft.Windows.Shell.Net4</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\PoshConsole.PowerShell\PoshConsole.PowerShell.csproj">
+      <Project>{C38D3F5E-BB88-49DE-9104-1E7B2FF98F09}</Project>
+      <Name>PoshConsole.PowerShell</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\PoshConsole.TabCompletion\PoshConsole.TabCompletion.fsproj">
+      <Project>{EFF9E729-DF32-4504-845A-335521D32236}</Project>
+      <Name>PoshConsole.TabCompletion</Name>
     </ProjectReference>
     <ProjectReference Include="..\PoshWpf\PoshWpf.Net4.csproj">
       <Project>{CF7BB5E9-5C58-4E0F-A37A-96A3C1753370}</Project>

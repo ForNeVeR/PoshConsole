@@ -16,7 +16,9 @@ using Huddled.Interop;
 using Huddled.Wpf;
 using Huddled.Wpf.Controls;
 using Huddled.Wpf.Controls.Interfaces;
-using Huddled.Wpf.Controls.Utility;
+using PoshConsole.PowerShell;
+using PoshConsole.Properties;
+using PoshConsole.TabCompletion;
 
 namespace PoshConsole.Host
 {
@@ -27,8 +29,6 @@ namespace PoshConsole.Host
 	/// </summary>
 	public partial class PoshHost : PSHost, IPSBackgroundHost
 	{
-		#region  Fields (16)
-
 		/// <summary>
 		/// A ConsoleRichTextBox for output
 		/// </summary>
@@ -42,6 +42,11 @@ namespace PoshConsole.Host
 		private static readonly Guid _INSTANCE_ID = Guid.NewGuid();
 		public bool IsClosing;
 		private readonly PoshRawUI _rawUI;
+
+		/// <summary>
+		/// An object for tab expansion controlling.
+		/// </summary>
+		private readonly TabExpander _tabExpander;
 
 		/// <summary>
 		/// The PSHostUserInterface implementation
@@ -65,20 +70,13 @@ namespace PoshConsole.Host
 		private readonly Command _outDefault;
 		private readonly CommandRunner _runner;
 
-		#endregion
-
-		#region  Constructors (1)
-
-		//internal List<string> StringHistory;
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly",
-			MessageId = "PoshConsole")]
 		public PoshHost(IPSUI psUi)
 		{
 			_buffer = psUi.Console;
+			_tabExpander = new TabExpander(this);
 
 			MakeConsole();
 
-			//StringHistory = new List<string>();
 			Options = new PoshOptions(this, _buffer);
 			_psUi = psUi;
 
@@ -103,38 +101,21 @@ namespace PoshConsole.Host
 				throw;
 			}
 			_buffer.CommandBox.IsEnabled = false;
-			_buffer.Expander.TabComplete += BufferTabComplete;
+			_buffer.Expander.TabComplete += _tabExpander.Expand;
 			_buffer.Command += OnGotUserInput;
-			//_buffer.CommandEntered +=new ConsoleRichTextBox.CommandHandler(buffer_CommandEntered);
-
-			//_buffer.GetHistory +=new ConsoleRichTextBox.HistoryHandler(buffer_GetHistory);
-
-			// this.ShouldExit += new ExitHandler(WeShouldExit);
-			//myUI.ProgressUpdate += new PoshUI.WriteProgressDelegate( delegate(long sourceId, ProgressRecord record){if(ProgressUpdate!=null) ProgressUpdate(sourceId, record);} );
-			//myUI.Input += new PoshUI.InputDelegate(GetInput);
-			//myUI.Output += new PoshUI.OutputEventHandler(OnOutput);
-			//myUI.OutputLine += new PoshUI.OutputEventHandler(OnOutputLine);
-			//myUI.WritePrompt += new PoshUI.PromptDelegate(WritePrompt);
 
 			// Some delegates we think we can get away with making only once...
 			Properties.Settings.Default.PropertyChanged += SettingsPropertyChanged;
-			// Properties.Settings.Default.SettingChanging += new System.Configuration.SettingChangingEventHandler(SettingsSettingChanging);
-			// Properties.Colors.Default.PropertyChanged += new System.ComponentModel.PropertyChangedEventHandler(ColorsPropertyChanged);
-			_runner = new CommandRunner(this);
+
+			_runner = new CommandRunner(this, Resources.Prompt);
 			_runner.RunspaceReady += (source, args) => _buffer.Dispatcher.BeginInvoke((Action) (() =>
 				{
 					_buffer.CommandBox.IsEnabled = true;
 					ExecutePromptFunction(null, PipelineState.Completed);
 				}));
 
-
 			_runner.ShouldExit += (source, args) => SetShouldExit(args);
-
-			//// Finally, STARTUP!
-			//ExecuteStartupProfile();
 		}
-
-		#endregion
 
 		#region  Properties (7)
 
@@ -498,87 +479,6 @@ namespace PoshConsole.Host
 				//Application.Current.Shutdown(exitCode);
 				_psUi.SetShouldExit(exitCode);
 			}
-		}
-
-		private List<string> BufferTabComplete(string commandLine)
-		{
-			var lastWord = commandLine.GetLastWord();
-			var generalCompletions = GetGeneralExpansions(commandLine, lastWord).ToList();
-			if (generalCompletions.Any())
-			{
-				return generalCompletions;
-			}
-
-			if (String.IsNullOrEmpty(lastWord))
-			{
-				return GetCommandlets(String.Empty)
-					.Concat(GetVariables(String.Empty))
-					.Concat(GetFiles("."))
-					.ToList();
-			}
-
-			if (lastWord.First() == '$')
-			{
-				return GetVariables(lastWord.Substring(1))
-					.ToList();
-			}
-
-			return GetCommandlets(lastWord)
-				.Concat(GetFiles(lastWord))
-				.ToList();
-		}
-
-		private IEnumerable<string> GetGeneralExpansions(string commandLine, string lastWord)
-		{
-			return InvokePipeline(
-				FormatPSCommand("TabExpansion",
-					Tuple.Create("CmdLine", commandLine),
-					Tuple.Create("LastWord", lastWord)))
-				.Select(pso => pso.ToString());
-		}
-
-		private IEnumerable<string> GetCommandlets(string beginning)
-		{
-			return InvokePipeline(
-				FormatPSCommand("Get-Command",
-					String.Format("{0}*", beginning)))
-				.Select(pso => pso.ImmediateBaseObject)
-				.Cast<CommandInfo>()
-				.Select(ci => ci.Name);
-		}
-
-		private IEnumerable<string> GetVariables(string beginning)
-		{
-			return InvokePipeline(FormatPSCommand("Get-Variable", String.Format("{0}*", beginning)))
-				.Select(pso => pso.ImmediateBaseObject)
-				.OfType<PSVariable>()
-				.Select(psv => String.Format("${0}", psv.Name));
-		}
-
-		private IEnumerable<string> GetFiles(string path)
-		{
-			return InvokePipeline(FormatPSCommand("Resolve-Path", path))
-				.Select(pso => pso.ToString());
-		}
-
-		private string FormatPSCommand(string command, params string[] args)
-		{
-			return String.Join(" ", new[] {command}
-				.Concat(args.Select(EscapeArgument)));
-		}
-
-		private string FormatPSCommand(string command, params Tuple<string, string>[] args)
-		{
-			return String.Join(" ", new[] {command}
-				.Concat(args.SelectMany(
-					pair => new[] {pair.Item1, EscapeArgument(pair.Item2)})));
-		}
-
-		private string EscapeArgument(string argument)
-		{
-			return argument.Any(c => Char.IsWhiteSpace(c) || c == '\'' || c == '"')
-				? String.Format("\"{0}\"", argument.Replace("'", "`'").Replace("\"", "`\""))
-				: argument;
 		}
 
 		#endregion

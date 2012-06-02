@@ -4,26 +4,39 @@ using System.Diagnostics;
 using System.Linq;
 using System.Management.Automation.Host;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using Huddled.Wpf.Controls.Properties;
 using Huddled.Wpf.Controls.Utility;
+using PoshConsole.PowerShell.Utilities;
+
 namespace Huddled.Wpf.Controls
 {
-   public class PopupMenu : Popup
-   {
+	public class PopupMenu : Popup
+	{
+		private IPoshConsoleControl _console;
+		private int _intelliNum = -1;
+		private ListBox _intellisense = new ListBox();
+		private static Regex _number = new Regex(@"[0-9]", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-      #region [rgn] Fields (6)
+		private static Regex _tabseparator = new Regex(@"[.;,=\\ |/[\]()""']",
+			RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-      IPoshConsoleControl _console;
-      int _intelliNum = -1;
-      ListBox _intellisense = new ListBox();
-      static Regex _number = new Regex(@"[0-9]", RegexOptions.CultureInvariant | RegexOptions.Compiled);
-      static Regex _tabseparator = new Regex(@"[.;,=\\ |/[\]()""']", RegexOptions.CultureInvariant | RegexOptions.Compiled);
-      string _terminalString = string.Empty;
+		private string _terminalString = string.Empty;
 
-      #endregion [rgn]
+		/// <summary>
+		/// A task for rilling the completion list.
+		/// </summary>
+		private Task _listLoadingTask;
+
+		/// <summary>
+		/// A cancellation token source for cancelling the loading task.
+		/// </summary>
+		private CancellationTokenSource _listLoadingCancellation = new CancellationTokenSource();
 
       public PopupMenu(IPoshConsoleControl console)
       {
@@ -263,52 +276,71 @@ namespace Huddled.Wpf.Controls
       }
 
       #endregion
-      
-      /// <summary>
-      /// Shows the popup.
-      /// </summary>
-      /// <param name="placementRectangle">The placement rectangle.</param>
-      /// <param name="items">The items.</param>
-      /// <param name="number">if set to <c>true</c> [number].</param>
-      /// <param name="filterDupes">if set to <c>true</c> [filter dupes].</param>
-      private void ShowPopup(Rect placementRectangle, List<string> items, bool number, bool filterDupes)
-      {
-         _intellisense.Items.Clear();
-         if (number)
-         {
-            _intellisense.Items.Filter = null;
-            for (int i = items.Count - 1; i >= 0; i--)
-            {
-               if (filterDupes && _intellisense.Items.Contains(items[i])) continue;
-               ListBoxItem item = new ListBoxItem();
-               TextSearch.SetText(item, items[i]); // A name must start with a letter or the underscore character (_), and must contain only letters, digits, or underscores
-               item.Content = string.Format("{0,2} {1}", i, items[i]);
-               _intellisense.Items.Insert(0, item);
-            }
-         }
-         else
-         {
-            for (int i = items.Count - 1; i >= 0; i--)
-            {
-               if (!filterDupes || !_intellisense.Items.Contains(items[i]))
-               {
-                  _intellisense.Items.Insert(0, items[i]);
-               }
-            }
-         }
 
-         _intellisense.Visibility = System.Windows.Visibility.Visible;
-         // if it's numbered, default to the last item
-         _intellisense.SelectedIndex = number ? items.Count - 1 : 0;
-         _intellisense.ScrollIntoView(_intellisense.SelectedItem);
+		/// <summary>
+		/// Show the popup.
+		/// </summary>
+		/// <param name="placementRectangle">The placement rectangle.</param>
+		/// <param name="completions">The emumeration of items to show.</param>
+		/// <param name="enableNumbering">If set to <c>true</c> then enables numbering.</param>
+		/// <param name="distinct">If set to <c>true</c> then filters duplicates in the list.</param>
+		private void ShowPopup(Rect placementRectangle, IEnumerable<string> completions, bool enableNumbering,
+			bool distinct)
+		{
+			if (_listLoadingTask != null)
+			{
+				_listLoadingCancellation.Cancel();
+				_listLoadingTask.Wait();
+			}
+			_intellisense.Items.Clear();
 
-         PlacementRectangle = placementRectangle;
-         Placement = PlacementMode.RelativePoint;
+			_intellisense.Items.Filter = null;
+			_listLoadingTask = Task.Factory.StartNew(() =>
+				{
+					var values = completions;
+					if (distinct)
+					{
+						values = values.Distinct();
+					}
 
-         IsOpen = true;          // show the popup
-         Focus();
-         _intellisense.Focus();  // focus the keyboard on the popup
-      }
+					int index = 0;
+					foreach (var value in values)
+					{
+						if (_listLoadingCancellation.IsCancellationRequested)
+						{
+							break;
+						}
+
+						var completion = value;
+						int number = ++index;
+						Dispatcher.Invoke((Action) (() =>
+							{
+								var item = new ListBoxItem();
+								TextSearch.SetText(item, completion);
+
+								// NOTE: A name must start with a letter or the underscore character (_), and must
+								// contain only letters, digits, or underscores.
+
+								item.Content = enableNumbering
+									? String.Format("{0,2} {1}", number, completion)
+									: completion;
+
+								_intellisense.Items.Add(item);
+							}));
+					}
+				}, _listLoadingCancellation.Token);
+
+			_intellisense.Visibility = Visibility.Visible;
+			_intellisense.SelectedIndex = 0;
+			_intellisense.ScrollIntoView(_intellisense.SelectedItem);
+
+			PlacementRectangle = placementRectangle;
+			Placement = PlacementMode.RelativePoint;
+
+			IsOpen = true; // show the popup
+			Focus();
+			_intellisense.Focus(); // focus the keyboard on the popup
+		}
 
       /// <summary>
       /// Types the ahead filter.
@@ -319,32 +351,30 @@ namespace Huddled.Wpf.Controls
       {
          return (item.ToString()).ToLower().StartsWith(_lastWord.ToLower());
       }
-      
-      internal void ShowHistoryPopup(Rect placementRectangle, List<string> list)
-      {
-         ShowPopup(placementRectangle, list, true, Properties.Settings.Default.HistoryMenuFilterDupes);
-      }
 
-      /// <summary>
-      /// Shows the tab-expansion popup.
-      /// </summary>
-      /// <param name="placementRectangle">The position to show the popup in.</param>
-      /// <param name="list">The list of options</param>
-      /// <param name="currentCommand">The current command</param>
-      internal void ShowTabPopup(Rect placementRectangle, List<string> list, string currentCommand)
-      {
-         // TODO: Minor: Sort this intelligently, by type...
-         // list.Sort();
-         list = list.Distinct().ToList(); 
-         // And filter it too
-         _tabbing = currentCommand.TrimEnd('\r','\n');
-         _lastWord = _tabbing.GetLastWord();
-         // the sweet typeahead auto-filter
-         _intellisense.Items.Filter = new Predicate<object>(TypeAheadFilter);
+		internal void ShowHistoryPopup(Rect placementRectangle, IEnumerable<string> completions)
+		{
+			ShowPopup(placementRectangle, completions, true, Settings.Default.HistoryMenuFilterDupes);
+		}
 
-         ShowPopup(placementRectangle, list, false, false);
-      }
+		/// <summary>
+		/// Shows the tab-expansion popup.
+		/// </summary>
+		/// <param name="placementRectangle">The position to show the popup in.</param>
+		/// <param name="completions">The list of options</param>
+		/// <param name="currentCommand">The current command</param>
+		internal void ShowTabPopup(Rect placementRectangle, IEnumerable<string> completions, string currentCommand)
+		{
+			completions = completions.Distinct()
+				.ToList();
 
+			_tabbing = currentCommand.TrimEnd('\r', '\n');
+			_lastWord = _tabbing.GetLastWord();
+
+			_intellisense.Items.Filter = TypeAheadFilter;
+
+			ShowPopup(placementRectangle, completions, false, false);
+		}
 
       private string _lastWord, _tabbing;
 

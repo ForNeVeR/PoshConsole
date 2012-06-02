@@ -1,119 +1,83 @@
 using System.Collections.Generic;
 using System.Diagnostics;
-using Huddled.Wpf.Controls.Utility;
+using System.Linq;
+using Microsoft.FSharp.Collections;
 
 namespace Huddled.Wpf.Controls
 {
-   public delegate List<string> TabExpansionLister(string commandLine);
+	public delegate IEnumerable<string> TabExpansionLister(string commandLine);
 
-   public class TabExpansion
-   {
+	public class TabExpansion
+	{
+		private IEnumerable<string> _choices;
+		private string _command;
+		private int _index;
 
-      #region [rgn] Fields (3)
+		public TabExpansion()
+		{
+			_choices = new List<string>();
+			TabComplete += cmd => new List<string>();
+		}
 
-      private List<string> _choices;
-      private string _command;
-      private int _index;
+		public event TabExpansionLister TabComplete;
 
-      #endregion [rgn]
+		public IEnumerable<string> GetChoices(string currentCommand)
+		{
+			ConsoleControl.TabExpansionTrace.TraceEvent(TraceEventType.Information, 1, "GetChoices for '{0}'", currentCommand);
+			if (_command != currentCommand ||
+				(_choices == null || !_choices.Any()) && (_command == null || _command != currentCommand))
+			{
+				_command = currentCommand;
+				_choices = SeqModule.Cache(TabComplete(currentCommand));
+			}
 
-      #region [rgn] Constructors (1)
+			if (ConsoleControl.TabExpansionTrace.Switch.Level >= SourceLevels.Information)
+			{
+				ConsoleControl.TabExpansionTrace.TraceEvent(TraceEventType.Information, 2, "Choice List:");
+			}
 
-      public TabExpansion()
-      {
-         _choices = new List<string>();
-         TabComplete += cmd => new List<string>();
-      }
+			return _choices;
+		}
 
-      #endregion [rgn]
+		public string Next(string currentCommand)
+		{
+			return Move(currentCommand, true);
+		}
 
-      #region [rgn] Delegates and Events (1)
+		public string Previous(string currentCommand)
+		{
+			return Move(currentCommand, false);
+		}
 
-      // [rgn] Events (1)
+		public void Reset()
+		{
+			_index = 0;
+			_command = null;
+			_choices = null;
+		}
 
-      public event TabExpansionLister TabComplete;
+		private string Move(string currentCommand, bool forward)
+		{
+			if (!_choices.Any())
+			{
+				GetChoices(currentCommand);
+			}
 
-      #endregion [rgn]
+			_index += forward ? 1 : -1;
 
-      #region [rgn] Methods (5)
+			if (_index < 0)
+			{
+				_index = 0;
+			}
 
-      // [rgn] Public Methods (4)
+			var element = _choices.Skip(_index).FirstOrDefault();
+			if (element == null)
+			{
+				_index = 0;
+				element = _choices.FirstOrDefault() ?? _command;
+			}
 
-      //private IPoshConsoleService _service;
-      //public void SetService(IPoshConsoleService service)
-      //{
-      //    _service = service;
-      //}
-      public List<string> GetChoices(string currentCommand)
-      {
-         ConsoleControl.TabExpansionTrace.TraceEvent(TraceEventType.Information, 1, "GetChoices for '{0}'", currentCommand);
-         if (_command != currentCommand || (_choices == null || _choices.Count == 0) && (_command == null || _command != currentCommand))
-         {
-            _command = currentCommand;
-            _choices = TabComplete(currentCommand);
-         }
-
-         if (ConsoleControl.TabExpansionTrace.Switch.Level >= SourceLevels.Information)
-         {
-            ConsoleControl.TabExpansionTrace.TraceEvent(TraceEventType.Information, 2, "Choice List:");
-            foreach (var ch in _choices)
-            {
-               ConsoleControl.TabExpansionTrace.TraceEvent(TraceEventType.Information, 2, ch);
-            }
-         }
-         return _choices;
-      }
-
-      public string Next(string currentCommand)
-      {
-         return Move(currentCommand, 1);
-      }
-
-      public string Previous(string currentCommand)
-      {
-         return Move(currentCommand, -1);
-      }
-
-      public void Reset()
-      {
-         _index = 0;
-         _command = null;
-         _choices = null;
-      }
-
-      // [rgn] Private Methods (1)
-
-      private string Move(string currentCommand, int direction)
-      {
-         if (_choices.Count == 0)
-         {
-            GetChoices(currentCommand);
-         }
-         else
-         {
-            _index += direction;
-         }
-
-         if (_index < 0)
-         {
-            // wrap around
-            _index = _choices.Count - 1;
-         }
-
-         if (_index >= _choices.Count)
-         {
-            // wrap around
-            _index = 0;
-         }
-
-         if (_choices.Count > 0)
-         {
-            return _choices[_index];
-         }
-         return _command;
-      }
-
-      #endregion [rgn]
-
-   }
+			return element;
+		}
+	}
 }
