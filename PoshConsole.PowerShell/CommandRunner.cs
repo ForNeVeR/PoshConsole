@@ -10,187 +10,11 @@ using System.Management.Automation.Host;
 using System.Management.Automation.Runspaces;
 using System.Reflection;
 using System.Threading;
-using PoshConsole.Properties;
+using PoshConsole.PowerShell.Delegates;
+using PoshConsole.PowerShell.Utilities;
 
-// ReSharper disable CheckNamespace
-namespace PoshConsole
+namespace PoshConsole.PowerShell
 {
-	public struct PipelineExecutionResult
-	{
-		private readonly Collection<Object> _errors;
-		private readonly Exception _failure;
-		private readonly Collection<PSObject> _output;
-		private readonly PipelineState _state;
-
-		public PipelineExecutionResult(Collection<PSObject> output, Collection<Object> errors, Exception failure,
-									   PipelineState state)
-		{
-			_failure = failure;
-			_errors = errors ?? new Collection<Object>();
-			_output = output ?? new Collection<PSObject>();
-			_state = state;
-		}
-
-		public Collection<PSObject> Output
-		{
-			get { return _output; }
-		}
-
-		public Collection<Object> Errors
-		{
-			get { return _errors; }
-		}
-
-		public Exception Failure
-		{
-			get { return _failure; }
-		}
-
-		public PipelineState State
-		{
-			get { return _state; }
-		}
-	}
-
-	public delegate void PipelineOutputHandler(PipelineExecutionResult result);
-
-	public delegate void ShouldExitHandler(object source, int exitCode);
-
-	public delegate void RunspaceReadyHandler(object source, RunspaceState stateEventArgs);
-
-
-	public struct InputBoundCommand
-	{
-		public bool AddToHistory;
-		public PipelineOutputHandler Callback;
-		public string[] Commands;
-		public bool DefaultOutput;
-		public IEnumerable Input;
-		public bool RunAsScript;
-		public bool UseLocalScope;
-
-		//public Pipeline Pipeline;
-
-		public InputBoundCommand( /*Pipeline pipeline,*/
-		   string[] commands, IEnumerable input, PipelineOutputHandler callback)
-		{
-			//Pipeline = pipeline;
-			Commands = commands;
-			Input = input;
-			Callback = callback;
-
-			AddToHistory = true;
-			DefaultOutput = true;
-			RunAsScript = true;
-			UseLocalScope = false;
-		}
-
-		public InputBoundCommand( /*Pipeline pipeline,*/
-		   string[] commands, IEnumerable input, bool addToHistory, PipelineOutputHandler callback)
-		{
-			//Pipeline = pipeline;
-			Commands = commands;
-			Input = input;
-			Callback = callback;
-			AddToHistory = addToHistory;
-
-			DefaultOutput = true;
-			RunAsScript = true;
-			UseLocalScope = false;
-		}
-	}
-
-
-	public class SyncEvents
-	{
-		// the exit thread event needs to be in every signalling array
-		private readonly EventWaitHandle _abortProcessingEvent;
-		private readonly EventWaitHandle _emptyQueueEvent;
-		private readonly WaitHandle[] _endQueueHandles;
-		private readonly EventWaitHandle _exitThreadEvent;
-		// this event signals new items
-		private readonly EventWaitHandle _newItemEvent;
-		// these events signal the end of processing
-		// the empty queue event: temporary end of processing because there's no items left
-
-
-		private readonly WaitHandle[] _newItemHandles;
-		private readonly EventWaitHandle _pipelineFinishedEvent;
-
-
-		public SyncEvents()
-		{
-			_newItemEvent = new AutoResetEvent(false);
-			_exitThreadEvent = new ManualResetEvent(false);
-			_emptyQueueEvent = new ManualResetEvent(false);
-			_abortProcessingEvent = new ManualResetEvent(false);
-			_pipelineFinishedEvent = new AutoResetEvent(false);
-
-			_newItemHandles = new WaitHandle[3];
-			_newItemHandles[0] = _exitThreadEvent;
-			_newItemHandles[1] = _abortProcessingEvent;
-			_newItemHandles[2] = _newItemEvent;
-
-			_endQueueHandles = new WaitHandle[3];
-			_endQueueHandles[0] = _exitThreadEvent;
-			_endQueueHandles[1] = _abortProcessingEvent;
-			_endQueueHandles[2] = _emptyQueueEvent;
-		}
-
-		public EventWaitHandle PipelineFinishedEvent
-		{
-			get { return _pipelineFinishedEvent; }
-		}
-
-		/// <summary>
-		/// Gets the exit thread event.
-		/// </summary>
-		/// <value>The exit thread event.</value>
-		public EventWaitHandle ExitThreadEvent
-		{
-			get { return _exitThreadEvent; }
-		}
-
-		/// <summary>
-		/// Gets the new item event.
-		/// </summary>
-		/// <value>The new item event.</value>
-		public EventWaitHandle NewItemEvent
-		{
-			get { return _newItemEvent; }
-		}
-
-		/// <summary>
-		/// Gets the empty queue event.
-		/// </summary>
-		/// <value>The empty queue event.</value>
-		public EventWaitHandle EmptyQueueEvent
-		{
-			get { return _emptyQueueEvent; }
-		}
-
-		/// <summary>
-		/// Gets the abort queue event.
-		/// </summary>
-		/// <value>The abort queue event.</value>
-		public EventWaitHandle AbortQueueEvent
-		{
-			get { return _abortProcessingEvent; }
-		}
-
-
-		public WaitHandle[] NewItemEvents
-		{
-			get { return _newItemHandles; }
-		}
-
-		public WaitHandle[] TerminationEvents
-		{
-			get { return _endQueueHandles; }
-		}
-	}
-
-
 	public class CommandRunner : IDisposable
 	{
 #if DEBUG
@@ -319,7 +143,7 @@ namespace PoshConsole
 		private void StartRunspace()
 		{
 
-			
+
 
 			/*
 					   foreach (var t in System.Reflection.Assembly.GetEntryAssembly().GetTypes())
@@ -405,47 +229,47 @@ namespace PoshConsole
 					// This is a dynamic anonymous delegate so that it can access the Callback parameter
 					_pipeline.StateChanged +=
 					   (EventHandler<PipelineStateEventArgs>)delegate(object sender, PipelineStateEventArgs e) // =>
-																 {
-																	 Trace.WriteLine("Pipeline is " +
-																					 e.PipelineStateInfo.State);
+					   {
+						   Trace.WriteLine("Pipeline is " +
+										   e.PipelineStateInfo.State);
 
-																	 if (e.PipelineStateInfo.IsDone())
-																	 {
-																		 Trace.WriteLine("Pipeline is Done");
+						   if (e.PipelineStateInfo.IsDone())
+						   {
+							   Trace.WriteLine("Pipeline is Done");
 
-																		 Pipeline completed =
-																			Interlocked.Exchange(ref _pipeline, null);
-																		 if (completed != null)
-																		 {
-																			 Exception failure = e.PipelineStateInfo.Reason;
+							   Pipeline completed =
+								  Interlocked.Exchange(ref _pipeline, null);
+							   if (completed != null)
+							   {
+								   Exception failure = e.PipelineStateInfo.Reason;
 
-																			 if (failure != null)
-																			 {
-																				 Debug.WriteLine(failure.GetType(),
-																								 "PipelineFailure");
-																				 Debug.WriteLine(failure.Message,
-																								 "PipelineFailure");
-																			 }
-																			 Collection<Object> errors =
-																				completed.Error.ReadToEnd();
-																			 Collection<PSObject> results =
-																				completed.Output.ReadToEnd();
+								   if (failure != null)
+								   {
+									   Debug.WriteLine(failure.GetType(),
+													   "PipelineFailure");
+									   Debug.WriteLine(failure.Message,
+													   "PipelineFailure");
+								   }
+								   Collection<Object> errors =
+									  completed.Error.ReadToEnd();
+								   Collection<PSObject> results =
+									  completed.Output.ReadToEnd();
 
-																			 completed.Dispose();
-																			 //_SyncEvents.PipelineFinishedEvent.Set();
+								   completed.Dispose();
+								   //_SyncEvents.PipelineFinishedEvent.Set();
 
-																			 if (boundCommand.Callback != null)
-																			 {
-																				 boundCommand.Callback(
-																					new PipelineExecutionResult(results, errors,
-																												failure,
-																												e.
-																												   PipelineStateInfo
-																												   .State));
-																			 }
-																		 }
-																	 }
-																 };
+								   if (boundCommand.Callback != null)
+								   {
+									   boundCommand.Callback(
+										  new PipelineExecutionResult(results, errors,
+																	  failure,
+																	  e.
+																		 PipelineStateInfo
+																		 .State));
+								   }
+							   }
+						   }
+					   };
 
 					// I thought that maybe invoke instead of InvokeAsync() would stop the (COM) thread problems
 					// it didn't, but it means I don't need the sync, so I might as well leave it...
@@ -523,7 +347,7 @@ namespace PoshConsole
 		/// <summary>
 		/// Executes the shutdown profile(s).
 		/// </summary>
-		internal void ExecuteShutdownProfile(int exitCode)
+		public void ExecuteShutdownProfile(int exitCode)
 		{
 			//* %windir%\system32\WindowsPowerShell\v1.0\profile_exit.ps1
 			//  This profile applies to all users and all shells.
@@ -550,17 +374,17 @@ namespace PoshConsole
 			if (existing.Count > 0)
 			{
 				Enqueue(new InputBoundCommand(existing.ToArray(), new object[0], result =>
-																					{
-																						if (result.Failure != null)
-																						{
-																							// WriteErrorRecord(((RuntimeException)(result.Failure)).ErrorRecord);
-																						}
+				{
+					if (result.Failure != null)
+					{
+						// WriteErrorRecord(((RuntimeException)(result.Failure)).ErrorRecord);
+					}
 
-																						if (ShouldExit != null)
-																						{
-																							ShouldExit(this, exitCode);
-																						}
-																					}) { AddToHistory = false, RunAsScript = false });
+					if (ShouldExit != null)
+					{
+						ShouldExit(this, exitCode);
+					}
+				}) { AddToHistory = false, RunAsScript = false });
 
 
 				//try
@@ -597,7 +421,7 @@ namespace PoshConsole
 		{
 			CommandQueue.Clear();
 
-			Enqueue(new InputBoundCommand(new[] { Resources.Prompt }, new object[0], false, null));
+			Enqueue(new InputBoundCommand(new[] { "[0]:" }, new object[0], false, null));
 
 			var existing = new List<string>(4);
 			existing.AddRange(from profileVariable in InitialSessionState.Variables["profile"]

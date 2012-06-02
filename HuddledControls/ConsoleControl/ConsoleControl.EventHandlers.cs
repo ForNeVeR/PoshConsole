@@ -11,6 +11,7 @@ using Huddled.Wpf.Controls.Interfaces;
 using Huddled.Wpf.Controls.Utility;
 using System.Windows.Threading;
 using System.Windows.Documents;
+using PoshConsole.PowerShell.Utilities;
 using Keyboard=System.Windows.Input.Keyboard;
 using System.Management.Automation;
 using System.Collections.ObjectModel;

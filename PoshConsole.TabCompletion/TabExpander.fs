@@ -4,27 +4,27 @@ open System
 open System.Management.Automation
 open System.Management.Automation.Host
 open System.Threading
-open Huddled.Wpf.Controls.Utility
-open PoshConsole
+open PoshConsole.PowerShell
+open PoshConsole.PowerShell.Utilities
 
 type TabExpander (host : PSHost) =
     let runner = new CommandRunner(host)
 
     let invokeCommand command =
-         let mutable result = None
+         let result = ref (new PipelineExecutionResult())
          let syncRoot = new AutoResetEvent(false)
          let command =
             new InputBoundCommand(
                 [| command |], [],
                 (fun r -> 
-                    result <- Some r
+                    result := r
                     syncRoot.Set() |> ignore),
                 AddToHistory = false, DefaultOutput = false)
             
          runner.Enqueue(command)
          syncRoot.WaitOne() |> ignore
 
-         (Option.get result).Output
+         (!result).Output
 
     let getGeneralExpansions commandLine lastWord =
         invokeCommand <| PsCommand.formatTuples "TabExpansion" ["CmdLine", commandLine;
@@ -44,7 +44,7 @@ type TabExpander (host : PSHost) =
         |> Seq.map (fun psv -> sprintf "$%A" psv.Name)
 
     let getFiles path =
-        invokeCommand <| PsCommand.formatSimple "Resolve-Path" path
+        invokeCommand <| PsCommand.formatSimple "Resolve-Path" [path]
         |> Seq.map (fun o -> o.ToString())
 
     member this.Expand (commandLine : string) =

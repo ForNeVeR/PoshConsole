@@ -12,6 +12,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Huddled.Wpf.Controls.Properties;
 using Huddled.Wpf.Controls.Utility;
+using PoshConsole.PowerShell.Utilities;
 
 namespace Huddled.Wpf.Controls
 {
@@ -35,7 +36,7 @@ namespace Huddled.Wpf.Controls
 		/// <summary>
 		/// A cancellation token source for cancelling the loading task.
 		/// </summary>
-		private CancellationTokenSource _listLoadingCancellation;
+		private CancellationTokenSource _listLoadingCancellation = new CancellationTokenSource();
 
       public PopupMenu(IPoshConsoleControl console)
       {

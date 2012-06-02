@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-//using System.Linq;
-using System.Management.Automation;
-using System.Management.Automation.Runspaces;
-using System.Threading;
 using System.Collections;
-using System.ComponentModel;
+using System.Collections.ObjectModel;
+using System.Management.Automation;
+using System.Threading;
+using PoshConsole.PowerShell;
+using PoshConsole.PowerShell.Delegates;
 
 namespace PoshConsole.Host
 {

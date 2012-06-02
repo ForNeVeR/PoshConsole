@@ -37,9 +37,7 @@
     <Reference Include="PresentationCore" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Management.Automation">
-      <HintPath>C:\Windows\assembly\GAC_MSIL\System.Management.Automation\1.0.0.0__31bf3856ad364e35\System.Management.Automation.dll</HintPath>
-    </Reference>
+    <Reference Include="System.Management.Automation" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -53,9 +51,9 @@
       <Project>{23a411b5-657b-4b8e-9b10-d7256d39ad08}</Project>
       <Private>True</Private>
     </ProjectReference>
-    <ProjectReference Include="..\PoshConsole\PoshConsole.Net4.csproj">
-      <Name>PoshConsole.Net4</Name>
-      <Project>{44c927e3-2c76-4ca4-9677-28da10e3fa83}</Project>
+    <ProjectReference Include="..\PoshConsole.PowerShell\PoshConsole.PowerShell.csproj">
+      <Name>PoshConsole.PowerShell</Name>
+      <Project>{c38d3f5e-bb88-49de-9104-1e7b2ff98f09}</Project>
       <Private>True</Private>
     </ProjectReference>
   </ItemGroup>
