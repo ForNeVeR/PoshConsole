@@ -224,7 +224,7 @@ namespace Huddled.Wpf.Controls
                     Math.Abs(ScrollViewer.ViewportHeight - position.Y)),
                  choices, CurrentCommand);
             }
-            else
+            else if (_expansion.GetChoices(cmdline).Any())
             {
                string tabExpansion = e.IsModifierOn(ModifierKeys.Shift) ? _expansion.Previous(cmdline) : _expansion.Next(cmdline);
                CurrentCommand = cmdline.Substring(0, cmdline.Length - cmdline.GetLastWord(false).Length) + tabExpansion;// + (hasMore ? CurrentCommandPostCursor : string.Empty);
