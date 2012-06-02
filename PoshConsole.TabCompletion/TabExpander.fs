@@ -2,12 +2,11 @@
 
 open System
 open System.Management.Automation
-open System.Management.Automation.Host
 open System.Threading
 open PoshConsole.PowerShell
 open PoshConsole.PowerShell.Utilities
 
-type TabExpander (host : PSHost) =
+type TabExpander (host) =
     let runner = new CommandRunner(host)
 
     let invokeCommand command =
