@@ -47,11 +47,19 @@ namespace PoshConsole.PowerShell
 		public event ShouldExitHandler ShouldExit;
 		public event RunspaceReadyHandler RunspaceReady;
 
-		/// <summary> Initializes a new instance of the <see cref="CommandRunner"/> class 
-		/// with no cookies.
+		/// <summary>
+		/// PowerShell code for prompt function.
 		/// </summary>
-		public CommandRunner(PSHost host)
+		private readonly string _promptFunction;
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="CommandRunner"/> class with no cookies.
+		/// </summary>
+		/// <param name="promptFunction">PowerShell code for prompt function.</param>
+		public CommandRunner(PSHost host, string promptFunction = "")
 		{
+			_promptFunction = promptFunction;
+			
 			CommandQueue = new Queue<InputBoundCommand>();
 			_syncEvents = new SyncEvents();
 
@@ -421,7 +429,7 @@ namespace PoshConsole.PowerShell
 		{
 			CommandQueue.Clear();
 
-			Enqueue(new InputBoundCommand(new[] { "[0]:" }, new object[0], false, null));
+			Enqueue(new InputBoundCommand(new[] {_promptFunction}, new object[0], false, null));
 
 			var existing = new List<string>(4);
 			existing.AddRange(from profileVariable in InitialSessionState.Variables["profile"]
@@ -438,7 +446,7 @@ namespace PoshConsole.PowerShell
 						   new[] { ". \"" + string.Join("\";. \"", existing.ToArray()) + "\";" },
 						   new object[0],
 						   false,
-						   ignored => RunspaceReady(this, _runSpace.RunspaceStateInfo.State))); // this is super important
+						   ignored => RaiseRunspaceReady(_runSpace.RunspaceStateInfo.State))); // this is super important
 			}
 			else
 			{
@@ -446,39 +454,21 @@ namespace PoshConsole.PowerShell
 						   new[] { "New-Paragraph" },
 						   new object[0],
 						   false,
-						   ignored => RunspaceReady(this, _runSpace.RunspaceStateInfo.State))); // this is super important
+						   ignored => RaiseRunspaceReady(_runSpace.RunspaceStateInfo.State))); // this is super important
 			}
 		}
 
-		//existing.Add();
-
-		////ExecutePipelineOutDefault(, false, result => { });
-
-		//result =>
-		//   {
-		//      StringBuilder str = new StringBuilder();
-
-		//      foreach (PSObject obj in result.Output)
-		//      {
-		//         str.Append(obj);
-		//      }
-		//      // ToDo: write errors from PROMPT the same as we would for a regular command...
-		//      //if(result.State == PipelineState.Failed ) {
-		//      //   str.Append(result.Failure.Message);
-		//      //   str.Append(result.Failure.Message);
-
-		//      _buffer.Prompt(str.ToString());
-		//   }
-
-
-		//if (cmd.Length > 0)
-		//{
-		//   ExecutePipelineOutDefault(cmd.ToString(), false, result => ExecutePromptFunction(result.State));
-		//}
-		//else
-		//{
-		//   ExecutePromptFunction(PipelineState.NotStarted);
-		//}
-		//}
+		/// <summary>
+		/// Raise the RunspaceReady event.
+		/// </summary>
+		/// <param name="state">The runspace state.</param>
+		private void RaiseRunspaceReady(RunspaceState state)
+		{
+			var handler = RunspaceReady;
+			if (handler != null)
+			{
+				handler(this, state);
+			}
+		}
 	}
 }

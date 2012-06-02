@@ -17,6 +17,7 @@ using Huddled.Wpf;
 using Huddled.Wpf.Controls;
 using Huddled.Wpf.Controls.Interfaces;
 using PoshConsole.PowerShell;
+using PoshConsole.Properties;
 using PoshConsole.TabCompletion;
 
 namespace PoshConsole.Host
@@ -106,7 +107,7 @@ namespace PoshConsole.Host
 			// Some delegates we think we can get away with making only once...
 			Properties.Settings.Default.PropertyChanged += SettingsPropertyChanged;
 
-			_runner = new CommandRunner(this);
+			_runner = new CommandRunner(this, Resources.Prompt);
 			_runner.RunspaceReady += (source, args) => _buffer.Dispatcher.BeginInvoke((Action) (() =>
 				{
 					_buffer.CommandBox.IsEnabled = true;
