@@ -43,6 +43,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{A93EDE
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PoshConsole.TabCompletion", "PoshConsole.TabCompletion\PoshConsole.TabCompletion.fsproj", "{EFF9E729-DF32-4504-845A-335521D32236}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -134,13 +136,21 @@ Global
 		{55D5297C-F1DF-4B76-A3C1-D82CC294EEBB}.Release|x64.Build.0 = Release|x64
 		{55D5297C-F1DF-4B76-A3C1-D82CC294EEBB}.Release|x86.ActiveCfg = Release|x86
 		{55D5297C-F1DF-4B76-A3C1-D82CC294EEBB}.Release|x86.Build.0 = Release|x86
+		{EFF9E729-DF32-4504-845A-335521D32236}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EFF9E729-DF32-4504-845A-335521D32236}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EFF9E729-DF32-4504-845A-335521D32236}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EFF9E729-DF32-4504-845A-335521D32236}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EFF9E729-DF32-4504-845A-335521D32236}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EFF9E729-DF32-4504-845A-335521D32236}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EFF9E729-DF32-4504-845A-335521D32236}.Release|x64.ActiveCfg = Release|Any CPU
+		{EFF9E729-DF32-4504-845A-335521D32236}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		CodeStyleEnforcer_Active = -1
 		CodeStyleEnforcer_RulesLocation = 0
+		CodeStyleEnforcer_Active = -1
 	EndGlobalSection
 	GlobalSection(NDepend) = preSolution
 		Project = ".\PoshConsole.Net4.ndproj"

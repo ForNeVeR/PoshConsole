@@ -15,7 +15,7 @@ using PoshConsole.Properties;
 // ReSharper disable CheckNamespace
 namespace PoshConsole
 {
-	internal struct PipelineExecutionResult
+	public struct PipelineExecutionResult
 	{
 		private readonly Collection<Object> _errors;
 		private readonly Exception _failure;
@@ -52,14 +52,14 @@ namespace PoshConsole
 		}
 	}
 
-	internal delegate void PipelineOutputHandler(PipelineExecutionResult result);
+	public delegate void PipelineOutputHandler(PipelineExecutionResult result);
 
 	public delegate void ShouldExitHandler(object source, int exitCode);
 
 	public delegate void RunspaceReadyHandler(object source, RunspaceState stateEventArgs);
 
 
-	internal struct InputBoundCommand
+	public struct InputBoundCommand
 	{
 		public bool AddToHistory;
 		public PipelineOutputHandler Callback;
@@ -191,7 +191,7 @@ namespace PoshConsole
 	}
 
 
-	internal class CommandRunner : IDisposable
+	public class CommandRunner : IDisposable
 	{
 #if DEBUG
 		protected static TraceSwitch ParseTrace = new TraceSwitch("parsing", "Controls the output level of the parsing tracers", "4");
