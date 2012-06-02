@@ -539,14 +539,12 @@ namespace PoshConsole.Host
 
 		private IEnumerable<string> GetCommandlets(string beginning)
 		{
-			if (_runner.RunspaceConfiguration == null)
-			{
-				return new string[0];
-			}
-
-			return _runner.RunspaceConfiguration.Cmdlets
-				.Select(cce => cce.Name)
-				.Where(s => s.StartsWith(beginning, true, null));
+			return InvokePipeline(
+				FormatPSCommand("Get-Command",
+					String.Format("{0}*", beginning)))
+				.Select(pso => pso.ImmediateBaseObject)
+				.Cast<CommandInfo>()
+				.Select(ci => ci.Name);
 		}
 
 		private IEnumerable<string> GetVariables(string beginning)
