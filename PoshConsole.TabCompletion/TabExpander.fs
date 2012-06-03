@@ -12,7 +12,7 @@ type TabExpander (host) =
     let invokeCommand command =
          let result = ref (new PipelineExecutionResult())
          let syncRoot = new AutoResetEvent(false)
-         let command =
+         let boundCommand =
             new InputBoundCommand(
                 [| command |], [],
                 (fun r -> 
@@ -20,24 +20,24 @@ type TabExpander (host) =
                     syncRoot.Set() |> ignore),
                 AddToHistory = false, DefaultOutput = false)
             
-         runner.Enqueue(command)
+         runner.Enqueue(boundCommand)
          syncRoot.WaitOne() |> ignore
 
          (!result).Output
 
     let getGeneralExpansions commandLine lastWord =
-        invokeCommand <| PsCommand.formatTuples "TabExpansion" ["CmdLine", commandLine;
-                                                                "LastWord", lastWord]
+        invokeCommand (PsCommand.formatTuples "TabExpansion" ["CmdLine", commandLine;
+                                                              "LastWord", lastWord])
         |> Seq.map string
 
     let getCommandlets beginning =
-        invokeCommand <| PsCommand.formatSimple "Get-Command" [(sprintf "%A*" beginning)]
+        invokeCommand <| PsCommand.formatSimple "Get-Command" [(sprintf "%s*" beginning)]
         |> Seq.map (fun pso -> pso.ImmediateBaseObject)
         |> Seq.cast<CommandInfo>
         |> Seq.map (fun ci -> ci.Name)
 
     let getVariables beginning =
-        invokeCommand <| PsCommand.formatSimple "Get-Variable" [(sprintf "%A*" beginning)]
+        invokeCommand <| PsCommand.formatSimple "Get-Variable" [(sprintf "%s*" beginning)]
         |> Seq.map (fun pso -> pso.ImmediateBaseObject)
         |> Seq.cast<PSVariable>
         |> Seq.map (fun psv -> sprintf "$%A" psv.Name)

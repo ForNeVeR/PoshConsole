@@ -11,10 +11,13 @@ let private escape (argument : string) =
     then String.Format("\"{0}\"", argument.Replace("'", "`'").Replace("\"", "`\""))
     else argument
 
-let formatSimple command args =
-    String.Join(" ", [Seq.singleton command,
-                      args |> Seq.map escape])
+let formatSimple (command : string) (args : string seq) =
+    String.Join(" ", command :: (args
+                                 |> Seq.map escape
+                                 |> Seq.toList))
 
-let formatTuples command args =
-    String.Join(" ", [Seq.singleton command,
-                      args |> Seq.map (fun name value -> [name, value])])
+let formatTuples (command : string) (args : (string * string) seq) =
+    String.Join(" ", command :: (args
+                                 |> Seq.map (function name, value -> [name; escape value])
+                                 |> Seq.concat
+                                 |> Seq.toList))

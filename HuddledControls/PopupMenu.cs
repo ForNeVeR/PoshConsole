@@ -290,11 +290,12 @@ namespace Huddled.Wpf.Controls
 			if (_listLoadingTask != null)
 			{
 				_listLoadingCancellation.Cancel();
-				_listLoadingTask.Wait();
 			}
 			_intellisense.Items.Clear();
 
 			_intellisense.Items.Filter = null;
+			
+			_listLoadingCancellation = new CancellationTokenSource();
 			_listLoadingTask = Task.Factory.StartNew(() =>
 				{
 					var values = completions;
