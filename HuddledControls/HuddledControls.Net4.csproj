@@ -145,6 +145,7 @@
     <Reference Include="Accessibility">
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
+    <Reference Include="FSharp.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -223,7 +224,6 @@
     </Compile>
     <Compile Include="ThumbnailImage.cs" />
     <Compile Include="Utility\OtherHelpers.cs" />
-    <Compile Include="Utility\StringHelper.cs" />
     <Compile Include="Utility\WpfHelper.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -244,6 +244,10 @@
     <AppDesigner Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\PoshConsole.PowerShell\PoshConsole.PowerShell.csproj">
+      <Project>{C38D3F5E-BB88-49DE-9104-1E7B2FF98F09}</Project>
+      <Name>PoshConsole.PowerShell</Name>
+    </ProjectReference>
     <ProjectReference Include="..\PoshWpf\PoshWpf.Net4.csproj">
       <Project>{CF7BB5E9-5C58-4E0F-A37A-96A3C1753370}</Project>
       <Name>PoshWpf.Net4</Name>

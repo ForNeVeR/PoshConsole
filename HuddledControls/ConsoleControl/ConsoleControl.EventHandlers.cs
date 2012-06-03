@@ -11,6 +11,7 @@ using Huddled.Wpf.Controls.Interfaces;
 using Huddled.Wpf.Controls.Utility;
 using System.Windows.Threading;
 using System.Windows.Documents;
+using PoshConsole.PowerShell.Utilities;
 using Keyboard=System.Windows.Input.Keyboard;
 using System.Management.Automation;
 using System.Collections.ObjectModel;
@@ -202,15 +203,14 @@ namespace Huddled.Wpf.Controls
 
          if (!e.IsModifierOn(ModifierKeys.Control) && !hasMore)
          {
-             List<string> choices = _expansion.GetChoices(cmdline);
+             var choices = _expansion.GetChoices(cmdline);
 
             Trace.WriteLine(((TimeSpan)(DateTime.Now - _tabTime)).TotalMilliseconds);
             // DO NOT use menu mode if we're in _playbackMode 
             // OTHERWISE, DO USE it if there are more than TabCompleteMenuThreshold items
             // OR if they double-tapped
             if ((CurrentCommandPostCursor.Trim('\n', '\r').Length == 0) &&
-                ((Properties.Settings.Default.TabCompleteMenuThreshold > 0
-                && choices.Count > Properties.Settings.Default.TabCompleteMenuThreshold)
+                ((Properties.Settings.Default.TabCompleteMenuThreshold > 0)
             || (((TimeSpan)(DateTime.Now - _tabTime)).TotalMilliseconds < Properties.Settings.Default.TabCompleteDoubleTapMilliseconds)))
             {
                
